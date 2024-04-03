@@ -3,5 +3,9 @@ venv/*
 .venv/*
 *.pyc
 dist/*
+.idea
+venv
 *.egg-info
 __pycache__
+tests/test_dns_nicru_real.py
+config.ini

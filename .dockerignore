@@ -1,0 +1,5 @@
+tests
+.idea
+venv
+config.ini
+certbot_dns_nicru.egg-info

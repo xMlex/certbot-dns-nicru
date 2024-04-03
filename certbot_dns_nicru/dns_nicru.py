@@ -2,13 +2,12 @@
 import logging
 
 import zope.interface
-
-from sh_nic_api import DnsApi
-from sh_nic_api.models import TXTRecord
-from sh_nic_api.exceptions import DnsApiException
 from certbot import errors
 from certbot import interfaces
 from certbot.plugins import dns_common
+from sh_nic_api import DnsApi
+from sh_nic_api.exceptions import DnsApiException
+from sh_nic_api.models import TXTRecord
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +34,7 @@ class Authenticator(dns_common.DNSAuthenticator):
     @classmethod
     def add_parser_arguments(cls, add):  # pylint: disable=arguments-differ
         super(Authenticator, cls).add_parser_arguments(
-            add, default_propagation_seconds=120
+            add, default_propagation_seconds=180
         )
         add("credentials", help="nic.ru credentials INI file.")
 
@@ -62,19 +61,24 @@ class Authenticator(dns_common.DNSAuthenticator):
 
     def _perform(self, domain: str, validation_name: str, validation: str):
         client = self._get_client()
+        logger.info('try add txt record %s for domain %s as %s with key %s', self.get_txt_record_name(validation_name),
+                    validation_name, validation)
         try:
             client.add_record(TXTRecord(
                 txt=validation,
                 ttl=self.ttl,
-                name=validation_name.split(".")[0]
+                name=self.get_txt_record_name(validation_name)
             ))
             client.commit()
         except DnsApiException as e:
-            raise errors.PluginError(f"Add record error: {e}")
+            raise errors.PluginError(f"Add record error: {e}, ")
 
     def _cleanup(self, domain: str, validation_name: str, validation: str):
+        if self.credentials is None:
+            self._setup_credentials()
+
         client = self._get_client()
-        name = validation_name.split(".")[0]
+        name = self.get_txt_record_name(validation_name)
 
         try:
             for record in client.records():
@@ -100,3 +104,9 @@ class Authenticator(dns_common.DNSAuthenticator):
         except DnsApiException as e:
             raise errors.PluginError(f"Get token error: {e}")
         return client
+
+    def get_txt_record_name(self, validation_name: str):
+        if self.credentials is None:
+            self._setup_credentials()
+        name = validation_name.replace(self.credentials.conf("zone"), '').strip('.')
+        return name
