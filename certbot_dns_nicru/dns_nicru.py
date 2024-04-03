@@ -61,7 +61,7 @@ class Authenticator(dns_common.DNSAuthenticator):
 
     def _perform(self, domain: str, validation_name: str, validation: str):
         client = self._get_client()
-        logger.info('try add txt record %s for domain %s as %s with key %s', self.get_txt_record_name(validation_name),
+        logger.info('try add txt record %s as %s with key %s', self.get_txt_record_name(validation_name),
                     validation_name, validation)
         try:
             client.add_record(TXTRecord(
